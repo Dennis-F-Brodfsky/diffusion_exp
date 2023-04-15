@@ -1,7 +1,7 @@
 # diffusion_exp
-diffusion-RL project which is running on enviroments 
+diffusion-RL project which is running on enviroments:
  
-Linux Ubuntu 20.04 with GPU Nvidia 3090; 
+Linux Ubuntu 20.04 with GPU NVIDIA GeForce 3090; 
 
 Python version: 3.7
 
