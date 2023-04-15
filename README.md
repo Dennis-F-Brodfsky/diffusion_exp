@@ -30,4 +30,4 @@ Detail Files are here: https://huggingface.co/google/ddpm-cifar10-32/tree/main
 
 Q: How to get PreTrained StudionGAN?(DCGAN)
 
-A: `cd models` then `wget https://huggingface.co/Mingguksky/PyTorch-StudioGAN/blob/main/studiogan_official_ckpt/CIFAR10_tailored/CIFAR10-DCGAN-train-2022_01_11_20_39_29/model%3DD-best-weights-step%3D50000.pth`, and you can get PreTrained Discriminator of DCGAN. Some other preTrained checkpoints are here https://huggingface.co/Mingguksky/PyTorch-StudioGAN/tree/main/studiogan_official_ckpt
+A: `cd models` then `wget https://huggingface.co/Mingguksky/PyTorch-StudioGAN/blob/main/studiogan_official_ckpt/CIFAR10_tailored/CIFAR10-DCGAN-train-2022_01_11_20_40_00/model%3DD-best-weights-step%3D18000.pth`, and you can get PreTrained Discriminator of DCGAN. Some other preTrained checkpoints are here https://huggingface.co/Mingguksky/PyTorch-StudioGAN/tree/main/studiogan_official_ckpt
