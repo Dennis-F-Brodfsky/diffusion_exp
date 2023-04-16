@@ -114,6 +114,8 @@ class DiffusionQAgent(BaseAgent):
         self.replay_buffer = FlexibleReplayBuffer(agent_params['buffer_size'], agent_params['horizon'])
         self.t = 0
         self.replay_buffer_idx = None
+        self.latest_nfe = None
+        self.latest_dis_score = None
         self.num_param_updates = 0
 
     def add_to_replay_buffer(self, paths, add_noised=False):
@@ -136,6 +138,8 @@ class DiffusionQAgent(BaseAgent):
         self.last_obs = obs.copy()
         self.replay_buffer.store_effect(self.replay_buffer_idx, action, reward, done)
         if done:
+            self.latest_dis_score = reward
+            self.latest_nfe = np.sum(obs == 1)
             self.last_obs = self.env.reset()
 
     def sample(self, batch_size):
@@ -145,7 +149,7 @@ class DiffusionQAgent(BaseAgent):
             return [], [], [], [], []
 
     def train(self):
-        all_logs = []
+        logs = {}
         for train_step in range(self.agent_params['num_agent_train_steps_per_iter']):
             train_log = {}
             ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = self.sample(self.agent_params['train_batch_size'])
@@ -156,8 +160,10 @@ class DiffusionQAgent(BaseAgent):
                     self.critic.update_target_network()
                 self.num_param_updates += 1
             self.t += 1
-            all_logs.append(train_log)
-        return all_logs[-1]
+            logs.update(train_log)
+        if self.latest_dis_score is not None and self.latest_nfe is not None:
+            logs.update({'DIS_score': self.latest_dis_score, "NFE": self.latest_nfe})
+        return logs
 
     def save(self):
         pass

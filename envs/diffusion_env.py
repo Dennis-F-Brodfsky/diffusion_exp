@@ -26,6 +26,7 @@ class DiffusionEnv(gym.Env):
         self.loc = params['loc']
         self.scale = params['scale']
         self.idx = 0
+        self.img_idx = 0
 
     @torch.no_grad()
     def step(self, action):
@@ -62,10 +63,11 @@ class DiffusionEnv(gym.Env):
             model_output = self.unet(image.to(ptu.device), t).sample
             image = self.scheduler.step(model_output, t, image.to(ptu.device)).prev_sample
         # 输出PIL图片，转化
-        if self._is_eval:
+        self.idx += 1
+        if self._is_eval or self.idx >= 200000 - 500:
             result_img = (image / 2 + 0.5).clamp(0, 1).cpu().permute(0, 2, 3, 1).numpy()
             result_img = numpy_to_pil(result_img)
             for img in result_img:
-                self.idx += 1
-                img.save(self.logdir + f'/img/{self.idx}.jpg')
+                self.img_idx += 1
+                img.save(self.logdir + f'/img/{self.img_idx}.jpg')
         return self.state[:], (self.DIS(image.to(ptu.device), 1)['adv_output'].mean().item()+self.loc)*self.scale, True, {}

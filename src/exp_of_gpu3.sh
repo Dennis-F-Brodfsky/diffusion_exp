@@ -1,5 +1,4 @@
-python main.py --seed 0 --lr 0.001 --timestep 500 --penalty 0.001 --gpu_id 2 --exp_name p0.001s1
-python main.py --seed 1 --lr 0.001 --timestep 500 --penalty 0.001 --gpu_id 2 --exp_name p0.001s2
-python main.py --seed 2 --lr 0.001 --timestep 500 --penalty 0.001 --gpu_id 2 --exp_name p0.001s3
-python main.py --seed 3 --lr 0.001 --timestep 750 --penalty 0.001 --gpu_id 2 --exp_name p0.001s4
-python main.py --seed 4 --lr 0.001 --timestep 750 --penalty 0.001 --gpu_id 2 --exp_name p0.001s5
+# loc 
+python main.py --lr 0.001 --n_itr 20000000 --penalty 0.01 --loc 5 --gpu_id 2 --exp_name p0.01l5
+python main.py --lr 0.001 --n_itr 20000000 --penalty 0.2 --loc 10 --gpu_id 2 --exp_name p0.2l10
+python main.py --lr 0.001 --n_itr 20000000 --penalty 0.5 --loc 50 --gpu_id 2 --exp_name p0.5l50

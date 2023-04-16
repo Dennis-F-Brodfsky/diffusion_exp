@@ -206,7 +206,6 @@ class DiffusionQTrainer(RLTrainer):
         self.mean_episode_reward = -float('nan')
         self.best_mean_episode_reward = -float('inf')
         super().__init__(params)
-        self.eval_env = self._create_eval_env()
 
     def _create_env(self, params) -> gym.Env:
         env = envs.DiffusionEnv(params)
@@ -222,9 +221,7 @@ class DiffusionQTrainer(RLTrainer):
         return env
 
     def _create_eval_env(self, params) -> gym.Env:
-        env = envs.DiffusionEnv(params, True)
-        env.seed(params['seed'])
-        return env
+        return None
     
     def perform_logging(self, itr, paths, eval_policy, train_video_paths, training_logs):
         last_log = training_logs[-1]

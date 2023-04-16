@@ -79,7 +79,7 @@ class DiffusionQConfig(BasicConfig):
     clipped_q: bool = False
     double_q: bool = False
     exploration_schedule: Schedule = None
-    q_func_spec: OptimizerSpec = None
+    q_net_spec: OptimizerSpec = None
     env_wrappers: Callable = None
     gamma: float = 0.99
     horizon: int = 1
