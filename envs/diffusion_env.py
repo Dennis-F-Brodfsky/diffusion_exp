@@ -5,6 +5,7 @@ import numpy as np
 import infrastructure.pytorch_util as ptu
 from infrastructure.utils import numpy_to_pil
 from diffusers import DDPMPipeline
+import time
 # from diffusers.schedulers.scheduling_utils import SchedulerOutput
 
 class DiffusionEnv(gym.Env):
@@ -57,12 +58,14 @@ class DiffusionEnv(gym.Env):
 
     @torch.no_grad()
     def _process_after_done(self):
+        t1 = time.time()
         self.scheduler.set_timesteps(ptu.device, self.state)
         image = torch.randn(self.img_size_per_batch)
         for t in self.scheduler.timesteps:
             model_output = self.unet(image.to(ptu.device), t).sample
             image = self.scheduler.step(model_output, t, image.to(ptu.device)).prev_sample
         # 输出PIL图片，转化
+        print('diffusion inference cost:', time.time()- t1)
         self.idx += 1
         if self._is_eval or self.idx >= 200000 - 500:
             result_img = (image / 2 + 0.5).clamp(0, 1).cpu().permute(0, 2, 3, 1).numpy()
