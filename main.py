@@ -94,7 +94,7 @@ parser.add_argument('--lr', type=float, default=0.001)
 parser.add_argument('--gpu_id', type=int, default=0)
 parser.add_argument('--ibs', type=int, default=512)
 parser.add_argument('--algo', type=str, default='q')
-parser.add_argument('--learning_start', type=int, default=50000)
+parser.add_argument('--learning_start', type=int, default=20000)
 parser.add_argument('--loc', type=float, default=0.0)
 parser.add_argument('--scale', type=float, default=1.0)
 arg_cmd = parser.parse_args()
@@ -105,7 +105,7 @@ logits_na = Actor()
 q_fun = lambda: Critic()
 actor_optim_spec = OptimizerSpec(constructor=Adam, optim_kwargs={'lr': arg_cmd.lr}, learning_rate_schedule=None)
 critic_optim_spec = OptimizerSpec(constructor=Adam, optim_kwargs={'lr': arg_cmd.lr}, learning_rate_schedule=None)
-explor_sche = PiecewiseSchedule([(0, 0.5), (arg_cmd.n_itr // 10, 0.1), (arg_cmd.n_itr // 2, 0.01)], outside_value=0.01)
+explor_sche = PiecewiseSchedule([(0, 0.5), (arg_cmd.n_itr // 10, 0.1), (arg_cmd.n_itr // 2, 0.01)], outside_value=0.0)
 
 
 if arg_cmd.algo == 'pg':

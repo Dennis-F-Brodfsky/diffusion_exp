@@ -109,6 +109,8 @@ class DiffusionQAgent(BaseAgent):
         self.learning_freq = agent_params['learning_freq']
         self.target_update_freq = agent_params['target_update_freq']
         self.exploration = agent_params['exploration_schedule']
+        self.loc = agent_params['loc']
+        self.scale = agent_params['scale']
         self.critic = DQNCritic(agent_params)
         self.actor = ArgmaxPolicy(self.critic)
         self.replay_buffer = FlexibleReplayBuffer(agent_params['buffer_size'], agent_params['horizon'])
@@ -138,7 +140,7 @@ class DiffusionQAgent(BaseAgent):
         self.last_obs = obs.copy()
         self.replay_buffer.store_effect(self.replay_buffer_idx, action, reward, done)
         if done:
-            self.latest_dis_score = reward
+            self.latest_dis_score = reward / self.scale - self.loc
             self.latest_nfe = np.sum(obs == 1)
             self.last_obs = self.env.reset()
 
