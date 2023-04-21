@@ -37,7 +37,7 @@ class Actor(nn.Module):
         # somet times x:refer to scalar while another time 
         # time_embed = F.one_hot(x.long(), num_classes=self.num_class)
         # print(self.embedding_weights.weight)
-        return self.activation(self.l2(self.activation(self.embedding(x.float()))))
+        return self.l2(self.activation(self.embedding(x.float())))
 
 
 class Critic(nn.Module):
@@ -48,7 +48,7 @@ class Critic(nn.Module):
         self.activation = nn.ReLU()
     
     def forward(self, x: torch.Tensor):
-        return self.activation(self.l2(self.activation(self.embedding(x.float()))))
+        return self.l2(self.activation(self.embedding(x.float())))
 
 
 cfg = Configurations('configs/CIFAR10/DCGAN.yaml')
@@ -121,7 +121,7 @@ elif arg_cmd.algo == 'q':
     args_q = DiffusionQConfig('',arg_cmd.n_itr, exp_name=arg_cmd.exp_name, batch_size=512,
                               no_gpu=False, which_gpu=arg_cmd.gpu_id, seed=arg_cmd.seed,
                               dis=DIS, penalty=arg_cmd.penalty, diffuser_scheduler=MyDPMScheduler, 
-                              gamma=0.999, scalar_log_freq=1000, learning_start=arg_cmd.learning_start,
+                              gamma=1, scalar_log_freq=1000, learning_start=arg_cmd.learning_start,
                               env_wrappers=lambda env: env, q_func=q_fun, q2_func=q_fun, 
                               clipped_q=True, double_q=True, loc=arg_cmd.loc, scale=arg_cmd.scale,
                               exploration_schedule=explor_sche, 

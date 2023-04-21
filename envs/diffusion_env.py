@@ -5,7 +5,6 @@ import numpy as np
 import infrastructure.pytorch_util as ptu
 from infrastructure.utils import numpy_to_pil
 from diffusers import DDPMPipeline
-import time
 # from diffusers.schedulers.scheduling_utils import SchedulerOutput
 
 class DiffusionEnv(gym.Env):
@@ -51,6 +50,8 @@ class DiffusionEnv(gym.Env):
         torch.cuda.empty_cache()
         self.cur_t = self.num_inference_steps - 1
         self.state = np.zeros(self.num_inference_steps, dtype=np.int8)
+        self.idx = 0
+        self.img_idx = 0
         return self.state[:]
         # return self.cur_t
 

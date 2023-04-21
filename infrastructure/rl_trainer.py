@@ -227,15 +227,15 @@ class DiffusionQTrainer(RLTrainer):
         last_log = training_logs[-1]
         episode_rewards = self.__get_wrapper_by_name(self.env, "Monitor").get_episode_rewards()
         if len(episode_rewards) > 0:
-            self.mean_episode_reward = np.mean(episode_rewards[-100:]).item()
-        if len(episode_rewards) > 100:
+            self.mean_episode_reward = np.mean(episode_rewards[-1000:]).item()
+        if len(episode_rewards) > 1000:
             self.best_mean_episode_reward = max(self.best_mean_episode_reward, self.mean_episode_reward)
         logs = OrderedDict()
         logs["Train_EnvstepsSoFar"] = self.agent.t
         print("Timestep %d" % (self.agent.t,))
         if self.mean_episode_reward > -5000:
             logs["Train_AverageReturn"] = np.mean(self.mean_episode_reward)
-        print("mean reward (100 episodes) %f" % self.mean_episode_reward)
+        print("mean reward (1000 episodes) %f" % self.mean_episode_reward)
         if self.best_mean_episode_reward > -5000:
             logs["Train_BestReturn"] = np.mean(self.best_mean_episode_reward)
         print("best mean reward %f" % self.best_mean_episode_reward)
