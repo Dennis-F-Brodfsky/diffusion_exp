@@ -111,6 +111,7 @@ class DiffusionQAgent(BaseAgent):
         self.exploration = agent_params['exploration_schedule']
         self.loc = agent_params['loc']
         self.scale = agent_params['scale']
+        self.prefer_to_skip = agent_params['skip_prob']
         self.critic = DQNCritic(agent_params)
         self.actor = ArgmaxPolicy(self.critic)
         self.replay_buffer = FlexibleReplayBuffer(agent_params['buffer_size'], agent_params['horizon'])
@@ -128,7 +129,11 @@ class DiffusionQAgent(BaseAgent):
         eps = self.exploration.value(self.t)
         perform_random_action = eps > np.random.random() or self.t <= self.learning_start
         if perform_random_action:
-            action = self.env.action_space.sample()
+            # action = self.env.action_space.sample()
+            if np.random.random() < self.prefer_to_skip:
+                action = 0
+            else:
+                action = 1
         else:
             ob = self.replay_buffer.encode_recent_observation()
             if not hasattr(ob, '__len__'):
@@ -141,7 +146,7 @@ class DiffusionQAgent(BaseAgent):
         self.replay_buffer.store_effect(self.replay_buffer_idx, action, reward, done)
         if done:
             self.latest_dis_score = reward / self.scale - self.loc
-            self.latest_nfe = np.sum(obs == 1)
+            self.latest_infrence_step = obs == 1
             self.last_obs = self.env.reset()
 
     def sample(self, batch_size):
@@ -163,8 +168,9 @@ class DiffusionQAgent(BaseAgent):
                 self.num_param_updates += 1
             self.t += 1
             logs.update(train_log)
-        if self.latest_dis_score is not None and self.latest_nfe is not None:
-            logs.update({'DIS_score': self.latest_dis_score, "NFE": self.latest_nfe})
+        if self.latest_dis_score is not None and self.latest_infrence_step is not None:
+            logs.update({'DIS_score': self.latest_dis_score, 
+                         "NFE": np.sum(self.latest_infrence_step)})
         return logs
 
     def save(self):

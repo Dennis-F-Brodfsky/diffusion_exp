@@ -66,13 +66,14 @@ class DiffusionQConfig(BasicConfig):
     num_inference_steps: int = 1000
     loc: float = 0
     scale: float = 1
+    skip_prob: float = 0.75
     image_size: Tuple = (3, 32, 32)
     inference_batch_size: int = 512
     diffuser_scheduler: Union[Module, None] = None
     max_norm_clipping: float = 10
-    learning_freq: int = 4
-    learning_start: int = int(5e4)
-    target_update_freq: int = int(1e4)
+    learning_freq: int = 1
+    learning_start: int = int(5e3)
+    target_update_freq: int = int(1e3)
     target_update_rate: float = 1.0
     q_func: Union[Callable, None] = None
     q2_func: Optional[Callable] = None

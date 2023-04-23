@@ -25,30 +25,42 @@ class MyDPMScheduler(DPMSolverMultistepScheduler):
         self.lower_order_nums = 0
 
 
+class FFN(nn.Module):
+    def __init__(self, trans_dim = 256, hidden_dim = 1024, dropout=0.1) -> None:
+        super().__init__()
+        self.l1 = nn.Linear(trans_dim, hidden_dim)
+        self.l2 = nn.Linear(hidden_dim, trans_dim)
+        self.activation = nn.ELU()
+        self.norm = nn.LayerNorm(trans_dim)
+        self.drop = nn.Dropout(dropout)
+
+    def forward(self, x):
+        x1 = self.drop(self.activation(self.l1(x)))
+        x1 = self.drop(self.activation(self.l2(x1)))
+        return self.norm(x1 + x)
+
+
 class Actor(nn.Module):
     def __init__(self, timesteps=1000) -> None:
         super().__init__()
         self.embedding = nn.Linear(timesteps, 256)
-        self.l2 = nn.Linear(256, 2)
-        self.activation = nn.ReLU()
-        self.num_class = timesteps
+        self.ffn = FFN(256, 1024)
 
     def forward(self, x: torch.Tensor):
         # somet times x:refer to scalar while another time 
         # time_embed = F.one_hot(x.long(), num_classes=self.num_class)
         # print(self.embedding_weights.weight)
-        return self.l2(self.activation(self.embedding(x.float())))
+        return self.ffn(self.ffn(self.embedding(x)))
 
 
 class Critic(nn.Module):
     def __init__(self, timesteps=1000) -> None:
         super().__init__()
         self.embedding = nn.Linear(timesteps, 256)
-        self.l2 = nn.Linear(256, 2)
-        self.activation = nn.ReLU()
+        self.ffn = FFN(256, 1024)
     
     def forward(self, x: torch.Tensor):
-        return self.l2(self.activation(self.embedding(x.float())))
+        return self.ffn(self.ffn(self.embedding(x)))
 
 
 cfg = Configurations('configs/CIFAR10/DCGAN.yaml')
@@ -105,7 +117,7 @@ logits_na = Actor()
 q_fun = lambda: Critic()
 actor_optim_spec = OptimizerSpec(constructor=Adam, optim_kwargs={'lr': arg_cmd.lr}, learning_rate_schedule=None)
 critic_optim_spec = OptimizerSpec(constructor=Adam, optim_kwargs={'lr': arg_cmd.lr}, learning_rate_schedule=None)
-explor_sche = PiecewiseSchedule([(0, 0.5), (arg_cmd.n_itr // 10, 0.1), (arg_cmd.n_itr // 2, 0.01)], outside_value=0.0)
+explor_sche = PiecewiseSchedule([(0, 0.5), (arg_cmd.n_itr // 10, 0.1), (arg_cmd.n_itr // 1.2, 0.05)], outside_value=0.0)
 
 
 if arg_cmd.algo == 'pg':

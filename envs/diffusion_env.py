@@ -50,8 +50,6 @@ class DiffusionEnv(gym.Env):
         torch.cuda.empty_cache()
         self.cur_t = self.num_inference_steps - 1
         self.state = np.zeros(self.num_inference_steps, dtype=np.int8)
-        self.idx = 0
-        self.img_idx = 0
         return self.state[:]
         # return self.cur_t
 
@@ -69,7 +67,7 @@ class DiffusionEnv(gym.Env):
         # 输出PIL图片，转化
         # print('diffusion inference cost:', time.time()- t1)
         self.idx += 1
-        if self._is_eval or self.idx >= 3000 - 500:
+        if self._is_eval or self.idx >= 3000 - 50:
             result_img = (image / 2 + 0.5).clamp(0, 1).cpu().permute(0, 2, 3, 1).numpy()
             result_img = numpy_to_pil(result_img)
             for img in result_img:
