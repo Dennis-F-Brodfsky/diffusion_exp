@@ -170,7 +170,12 @@ class DiffusionQAgent(BaseAgent):
             logs.update(train_log)
         if self.latest_dis_score is not None and self.latest_infrence_step is not None:
             logs.update({'DIS_score': self.latest_dis_score, 
-                         "NFE": np.sum(self.latest_infrence_step)})
+                         "NFE": np.sum(self.latest_infrence_step),
+                         "NFE_0.25": np.sum(self.latest_infrence_step[:250]),
+                         "NFE_0.5": np.sum(self.latest_infrence_step[250:500]),
+                         "NFE_0.75": np.sum(self.latest_infrence_step[500:750]),
+                         "NFE_1.0": np.sum(self.latest_infrence_step[750:])})
+
         return logs
 
     def save(self):

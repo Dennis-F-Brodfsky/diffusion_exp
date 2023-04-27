@@ -74,7 +74,7 @@ class DiffusionQConfig(BasicConfig):
     learning_freq: int = 1
     learning_start: int = int(5e3)
     target_update_freq: int = int(1e3)
-    target_update_rate: float = 1.0
+    target_update_rate: float = 0.95
     q_func: Union[Callable, None] = None
     q2_func: Optional[Callable] = None
     clipped_q: bool = False

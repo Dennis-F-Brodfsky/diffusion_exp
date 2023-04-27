@@ -26,7 +26,7 @@ class MyDPMScheduler(DPMSolverMultistepScheduler):
 
 
 class FFN(nn.Module):
-    def __init__(self, trans_dim = 256, hidden_dim = 1024, dropout=0.1) -> None:
+    def __init__(self, trans_dim = 256, hidden_dim = 512, dropout=0.1) -> None:
         super().__init__()
         self.l1 = nn.Linear(trans_dim, hidden_dim)
         self.l2 = nn.Linear(hidden_dim, trans_dim)
@@ -44,23 +44,25 @@ class Actor(nn.Module):
     def __init__(self, timesteps=1000) -> None:
         super().__init__()
         self.embedding = nn.Linear(timesteps, 256)
-        self.ffn = FFN(256, 1024)
+        self.ffn = FFN(256, 512)
+        self.linear = nn.Linear(256, 2)
 
     def forward(self, x: torch.Tensor):
         # somet times x:refer to scalar while another time 
         # time_embed = F.one_hot(x.long(), num_classes=self.num_class)
         # print(self.embedding_weights.weight)
-        return self.ffn(self.ffn(self.embedding(x)))
+        return self.linear(self.ffn(self.ffn(self.embedding(x))))
 
 
 class Critic(nn.Module):
     def __init__(self, timesteps=1000) -> None:
         super().__init__()
         self.embedding = nn.Linear(timesteps, 256)
-        self.ffn = FFN(256, 1024)
+        self.ffn = FFN(256, 512)
+        self.linear = nn.Linear(256, 2)
     
     def forward(self, x: torch.Tensor):
-        return self.ffn(self.ffn(self.embedding(x)))
+        return self.linear(self.ffn(self.ffn(self.embedding(x))))
 
 
 cfg = Configurations('configs/CIFAR10/DCGAN.yaml')
@@ -106,7 +108,7 @@ parser.add_argument('--lr', type=float, default=0.001)
 parser.add_argument('--gpu_id', type=int, default=0)
 parser.add_argument('--ibs', type=int, default=512)
 parser.add_argument('--algo', type=str, default='q')
-parser.add_argument('--learning_start', type=int, default=20000)
+parser.add_argument('--learning_start', type=int, default=10000)
 parser.add_argument('--loc', type=float, default=0.0)
 parser.add_argument('--scale', type=float, default=1.0)
 arg_cmd = parser.parse_args()
@@ -117,7 +119,7 @@ logits_na = Actor()
 q_fun = lambda: Critic()
 actor_optim_spec = OptimizerSpec(constructor=Adam, optim_kwargs={'lr': arg_cmd.lr}, learning_rate_schedule=None)
 critic_optim_spec = OptimizerSpec(constructor=Adam, optim_kwargs={'lr': arg_cmd.lr}, learning_rate_schedule=None)
-explor_sche = PiecewiseSchedule([(0, 0.5), (arg_cmd.n_itr // 10, 0.1), (arg_cmd.n_itr // 1.2, 0.05)], outside_value=0.0)
+explor_sche = PiecewiseSchedule([(0, 0.5), (arg_cmd.n_itr // 10, 0.1), (arg_cmd.n_itr // 1.2, 0.05)], outside_value=0.05)
 
 
 if arg_cmd.algo == 'pg':
@@ -133,7 +135,7 @@ elif arg_cmd.algo == 'q':
     args_q = DiffusionQConfig('',arg_cmd.n_itr, exp_name=arg_cmd.exp_name, batch_size=512,
                               no_gpu=False, which_gpu=arg_cmd.gpu_id, seed=arg_cmd.seed,
                               dis=DIS, penalty=arg_cmd.penalty, diffuser_scheduler=MyDPMScheduler, 
-                              gamma=1, scalar_log_freq=1000, learning_start=arg_cmd.learning_start,
+                              gamma=0.999, scalar_log_freq=1000, learning_start=arg_cmd.learning_start,
                               env_wrappers=lambda env: env, q_func=q_fun, q2_func=q_fun, 
                               clipped_q=True, double_q=True, loc=arg_cmd.loc, scale=arg_cmd.scale,
                               exploration_schedule=explor_sche, 
