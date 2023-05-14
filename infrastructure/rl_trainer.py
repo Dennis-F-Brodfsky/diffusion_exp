@@ -264,3 +264,10 @@ class DiffusionQTrainer(RLTrainer):
     def collect_training_trajectory(self, itr: int, initial_expertdata: str, collect_policy, num_transitions_to_sample):
         self.agent.step_env()
         return None, 1, None
+
+class DiffusionQRDQNTrainer(DiffusionQTrainer):
+    def __init__(self, params: Dict):
+        params['agent_class'] = agents.DiffusionQRDQNAgent
+        self.mean_episode_reward = -float('nan')
+        self.best_mean_episode_reward = -float('inf')
+        super(DiffusionQTrainer, self).__init__(params)

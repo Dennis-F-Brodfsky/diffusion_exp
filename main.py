@@ -1,7 +1,7 @@
 import argparse
-from infrastructure.utils import set_config_logdir, OptimizerSpec, PiecewiseSchedule
-from infrastructure.rl_trainer import DiffustionRLTrainer, DiffusionQTrainer
-from configs.config import DiffustionConfig, DiffusionQConfig
+from infrastructure.utils import set_config_logdir, OptimizerSpec, PiecewiseSchedule, sample_trajectories
+from infrastructure.rl_trainer import DiffustionRLTrainer, DiffusionQTrainer, DiffusionQRDQNTrainer
+from configs.config import DiffustionConfig, DiffusionQConfig, DiffusionQRDQNConfig
 import torch
 from torch.optim import Adam
 import torch.nn as nn
@@ -10,6 +10,7 @@ from config import Configurations
 from models.model import load_generator_discriminator
 from utils.log import make_logger
 from utils.ckpt import load_ckpt
+from functools import partial
 from diffusers import DPMSolverMultistepScheduler
 
 
@@ -55,14 +56,19 @@ class Actor(nn.Module):
 
 
 class Critic(nn.Module):
-    def __init__(self, timesteps=1000) -> None:
+    def __init__(self, n_quantile=1, ac_dim=2, timesteps=1000) -> None:
         super().__init__()
+        self.n_quantile = n_quantile
+        self.ac_dim = ac_dim
         self.embedding = nn.Linear(timesteps, 256)
         self.ffn = FFN(256, 512)
-        self.linear = nn.Linear(256, 2)
+        self.linear = nn.Linear(256, n_quantile*ac_dim)
     
     def forward(self, x: torch.Tensor):
-        return self.linear(self.ffn(self.ffn(self.embedding(x))))
+        if self.n_quantile == 1:
+            return self.linear(self.ffn(self.ffn(self.embedding(x))))
+        else:
+            return self.linear(self.ffn(self.ffn(self.embedding(x)))).reshape(-1, self.n_quantile, self.ac_dim)
 
 
 cfg = Configurations('configs/CIFAR10/DCGAN.yaml')
@@ -116,10 +122,9 @@ arg_cmd = parser.parse_args()
 
 ob_dim, ac_dim = 1000, 2
 logits_na = Actor()
-q_fun = lambda: Critic()
 actor_optim_spec = OptimizerSpec(constructor=Adam, optim_kwargs={'lr': arg_cmd.lr}, learning_rate_schedule=None)
 critic_optim_spec = OptimizerSpec(constructor=Adam, optim_kwargs={'lr': arg_cmd.lr}, learning_rate_schedule=None)
-explor_sche = PiecewiseSchedule([(0, 0.5), (arg_cmd.n_itr // 10, 0.1), (arg_cmd.n_itr // 1.2, 0.05)], outside_value=0.05)
+explor_sche = PiecewiseSchedule([(0, 0.5), (arg_cmd.n_itr // 10, 0.1), (arg_cmd.n_itr // 1.2, 0.05), (arg_cmd.n_itr, 0.025)])
 
 
 if arg_cmd.algo == 'pg':
@@ -132,10 +137,11 @@ if arg_cmd.algo == 'pg':
     trainer = DiffustionRLTrainer(param)
     trainer.run_training_loop(args.time_steps, trainer.agent.actor, trainer.agent.actor)
 elif arg_cmd.algo == 'q':
+    q_fun = lambda: Critic()
     args_q = DiffusionQConfig('',arg_cmd.n_itr, exp_name=arg_cmd.exp_name, batch_size=512,
                               no_gpu=False, which_gpu=arg_cmd.gpu_id, seed=arg_cmd.seed,
                               dis=DIS, penalty=arg_cmd.penalty, diffuser_scheduler=MyDPMScheduler, 
-                              gamma=0.999, scalar_log_freq=1000, learning_start=arg_cmd.learning_start,
+                              gamma=0.99, scalar_log_freq=1000, learning_start=arg_cmd.learning_start,
                               env_wrappers=lambda env: env, q_func=q_fun, q2_func=q_fun, 
                               clipped_q=True, double_q=True, loc=arg_cmd.loc, scale=arg_cmd.scale,
                               exploration_schedule=explor_sche, 
@@ -145,3 +151,19 @@ elif arg_cmd.algo == 'q':
     param = vars(args_q)
     trainer = DiffusionQTrainer(param)
     trainer.run_training_loop(args_q.time_steps, trainer.agent.actor, trainer.agent.actor)
+elif arg_cmd.algo == 'qr-dqn':
+    quantile_fun = lambda: Critic(n_quantile=5)
+    args_qr_dqn = DiffusionQRDQNConfig('', arg_cmd.n_itr, exp_name=arg_cmd.exp_name, batch_size=512, 
+                                       no_gpu=False, which_gpu=arg_cmd.gpu_id, seed=arg_cmd.seed,
+                                       dis=DIS, penalty=arg_cmd.penalty, diffuser_scheduler=MyDPMScheduler, 
+                                       gamma=0.99, scalar_log_freq=1000, learning_start=arg_cmd.learning_start,
+                                       env_wrappers=lambda env: env, quantile_func=quantile_fun, 
+                                       double_q=True, loc=arg_cmd.loc, scale=arg_cmd.scale,
+                                       exploration_schedule=explor_sche, 
+                                       quantile_net_spec=critic_optim_spec, inference_batch_size=arg_cmd.ibs)
+    set_config_logdir(args_qr_dqn)
+    param = vars(args_qr_dqn)
+    trainer = DiffusionQRDQNTrainer(param)
+    trainer.run_training_loop(args_qr_dqn.time_steps, trainer.agent.actor, trainer.agent.actor)
+path, _ = sample_trajectories(trainer.env, trainer.agent.actor, 1000, 1000)
+print(path[0]['action'])

@@ -1,0 +1,1 @@
+python main.py --lr 0.025 --n_itr 9000000 --penalty 1 --gpu_id 2 --seed 3 --exp_name p1seed3

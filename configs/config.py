@@ -25,11 +25,18 @@ class BasicConfig:
     batch_size_initial: int = batch_size
     add_ob_noise: bool = False
     env_wrappers: Optional[Callable] = None
+    dis: object = None
+    penalty: float = 0.05
+    num_inference_steps: int = 1000
+    loc: float = 0
+    scale: float = 1
+    image_size: Tuple = (3, 32, 32)
+    inference_batch_size: int = 4
+    diffuser_scheduler: Union[Module, None] = None
 
 
 @dataclasses.dataclass
 class DiffustionConfig(BasicConfig):
-    dis: object = None
     max_norm_clipping: float = 10
     gamma: float = 0.9
     mean_net: Union[Module, None] = None
@@ -44,13 +51,6 @@ class DiffustionConfig(BasicConfig):
     action_noise_std: float = 0
     horizon: int = 1
     ppo_eps: float = 0
-    penalty: float = 0.005
-    num_inference_steps: int = 1000
-    loc: float = 0
-    scale: float = 1
-    image_size: Tuple = (3, 32, 32)
-    inference_batch_size: int = 4
-    diffuser_scheduler: Union[Module, None] = None
 
     def __post_init__(self):
         self.train_batch_size = self.batch_size
@@ -61,15 +61,7 @@ class DiffustionConfig(BasicConfig):
 
 @dataclasses.dataclass
 class DiffusionQConfig(BasicConfig):
-    dis: object = None
-    penalty: float = 0.005
-    num_inference_steps: int = 1000
-    loc: float = 0
-    scale: float = 1
     skip_prob: float = 0.75
-    image_size: Tuple = (3, 32, 32)
-    inference_batch_size: int = 512
-    diffuser_scheduler: Union[Module, None] = None
     max_norm_clipping: float = 10
     learning_freq: int = 1
     learning_start: int = int(5e3)
@@ -89,3 +81,23 @@ class DiffusionQConfig(BasicConfig):
         self.train_batch_size = self.batch_size
         if self.clipped_q:
             assert bool(self.q2_func)
+
+
+@dataclasses.dataclass
+class DiffusionQRDQNConfig(BasicConfig):
+    skip_prob: float = 0.75
+    max_norm_clipping: float = 10
+    learning_freq: int = 1
+    learning_start: int = int(5e3)
+    target_update_freq: int = int(1e3)
+    target_update_rate: float = 0.95
+    quantile_func: Union[Callable, None] = None
+    double_q: bool = False
+    exploration_schedule: Schedule = None
+    quantile_net_spec: OptimizerSpec = None
+    env_wrappers: Callable = None
+    gamma: float = 0.99
+    horizon: int = 1
+
+    def __post_init__(self):
+        self.train_batch_size = self.batch_size

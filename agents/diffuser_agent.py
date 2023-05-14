@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from critics.dqn_critic import DQNCritic
+from critics.qr_dqn_critic import QRDQNCritic
 from policies.argmax_policy import ArgmaxPolicy
 from infrastructure.base_class import BaseAgent
 from policies.ppo_policy import MLPPolicyPPO
@@ -180,3 +181,26 @@ class DiffusionQAgent(BaseAgent):
 
     def save(self):
         pass
+
+
+class DiffusionQRDQNAgent(DiffusionQAgent):
+    def __init__(self, env, agent_params):
+        self.env = env
+        self.agent_params = agent_params
+        self.batch_size = agent_params['batch_size']
+        self.last_obs = self.env.reset()
+        self.learning_start = agent_params['learning_start']
+        self.learning_freq = agent_params['learning_freq']
+        self.target_update_freq = agent_params['target_update_freq']
+        self.exploration = agent_params['exploration_schedule']
+        self.loc = agent_params['loc']
+        self.scale = agent_params['scale']
+        self.prefer_to_skip = agent_params['skip_prob']
+        self.critic = QRDQNCritic(agent_params)
+        self.actor = ArgmaxPolicy(self.critic)
+        self.replay_buffer = FlexibleReplayBuffer(agent_params['buffer_size'], agent_params['horizon'])
+        self.t = 0
+        self.replay_buffer_idx = None
+        self.latest_nfe = None
+        self.latest_dis_score = None
+        self.num_param_updates = 0

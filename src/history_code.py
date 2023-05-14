@@ -124,6 +124,24 @@ def pytorch_fid(mu1, sigma1, mu2, sigma2, eps=1e-6):
 '''
 
 '''
+ptu.init_gpu(gpu_id=2)
+env = DiffusionEnv(params={'dis': DIS, 
+                           'logdir': 'logs', 
+                           'num_inference_steps': 1000, 
+                           'inference_batch_size': 128,
+                           'image_size': (3, 32, 32),
+                           'penalty': -0.5, 'loc': 0, 'scale': 1,
+                           'diffuser_scheduler': MyDPMScheduler}, is_eval=True)
+
+
+for i in range(96):
+    env.reset()
+    print(i)
+    for i in range(1000):
+        env.step(int(i % 4 == 0))
+'''
+
+'''
 # PyTorch StudioGAN: https://github.com/POSTECH-CVLab/PyTorch-StudioGAN
 # The MIT License (MIT)
 # See license file or visit https://github.com/POSTECH-CVLab/PyTorch-StudioGAN for details
