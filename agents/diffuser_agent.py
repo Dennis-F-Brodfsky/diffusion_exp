@@ -148,6 +148,7 @@ class DiffusionQAgent(BaseAgent):
         if done:
             self.latest_dis_score = reward / self.scale - self.loc
             self.latest_infrence_step = obs == 1
+            print(self.latest_infrence_step.nonzero()[0][::-1])
             self.last_obs = self.env.reset()
 
     def sample(self, batch_size):

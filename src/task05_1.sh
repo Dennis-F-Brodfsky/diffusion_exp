@@ -1,1 +1,1 @@
-python main.py --lr 0.025 --n_itr 9000000 --penalty 1 --gpu_id 1 --seed 1 --exp_name p1seed1 --algo qr-dqn
+python main.py --lr 0.025 --n_itr 9000000 --penalty 1 --gpu_id 1 --seed 1 --exp_name p1seed1 --algo qr-dqn --ibs 64

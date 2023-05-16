@@ -141,7 +141,7 @@ elif arg_cmd.algo == 'q':
     args_q = DiffusionQConfig('',arg_cmd.n_itr, exp_name=arg_cmd.exp_name, batch_size=512,
                               no_gpu=False, which_gpu=arg_cmd.gpu_id, seed=arg_cmd.seed,
                               dis=DIS, penalty=arg_cmd.penalty, diffuser_scheduler=MyDPMScheduler, 
-                              gamma=0.99, scalar_log_freq=1000, learning_start=arg_cmd.learning_start,
+                              gamma=0.95, scalar_log_freq=5000, learning_start=arg_cmd.learning_start,
                               env_wrappers=lambda env: env, q_func=q_fun, q2_func=q_fun, 
                               clipped_q=True, double_q=True, loc=arg_cmd.loc, scale=arg_cmd.scale,
                               exploration_schedule=explor_sche, 
@@ -156,7 +156,7 @@ elif arg_cmd.algo == 'qr-dqn':
     args_qr_dqn = DiffusionQRDQNConfig('', arg_cmd.n_itr, exp_name=arg_cmd.exp_name, batch_size=512, 
                                        no_gpu=False, which_gpu=arg_cmd.gpu_id, seed=arg_cmd.seed,
                                        dis=DIS, penalty=arg_cmd.penalty, diffuser_scheduler=MyDPMScheduler, 
-                                       gamma=0.99, scalar_log_freq=1000, learning_start=arg_cmd.learning_start,
+                                       gamma=0.95, scalar_log_freq=5000, learning_start=arg_cmd.learning_start,
                                        env_wrappers=lambda env: env, quantile_func=quantile_fun, 
                                        double_q=True, loc=arg_cmd.loc, scale=arg_cmd.scale,
                                        exploration_schedule=explor_sche, 
@@ -166,4 +166,4 @@ elif arg_cmd.algo == 'qr-dqn':
     trainer = DiffusionQRDQNTrainer(param)
     trainer.run_training_loop(args_qr_dqn.time_steps, trainer.agent.actor, trainer.agent.actor)
 path, _ = sample_trajectories(trainer.env, trainer.agent.actor, 1000, 1000)
-print(path[0]['action'])
+print(path[0]['action'].nonzero()[0][::-1])
