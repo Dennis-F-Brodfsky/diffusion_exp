@@ -159,7 +159,7 @@ class DiffusionQAgent(BaseAgent):
 
     def train(self):
         logs = {}
-        for train_step in range(self.agent_params['num_agent_train_steps_per_iter']):
+        for train_step in range(min(self.agent_params['num_agent_train_steps_per_iter'], self.t // self.batch_size)):
             train_log = {}
             ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = self.sample(self.agent_params['train_batch_size'])
             if (self.t > self.learning_start and self.t % self.learning_freq == 0
@@ -168,8 +168,8 @@ class DiffusionQAgent(BaseAgent):
                 if self.num_param_updates % self.target_update_freq == 0:
                     self.critic.update_target_network()
                 self.num_param_updates += 1
-            self.t += 1
             logs.update(train_log)
+        self.t += 1
         if self.latest_dis_score is not None and self.latest_infrence_step is not None:
             logs.update({'DIS_score': self.latest_dis_score, 
                          "NFE": np.sum(self.latest_infrence_step),
@@ -177,7 +177,6 @@ class DiffusionQAgent(BaseAgent):
                          "NFE_0.5": np.sum(self.latest_infrence_step[250:500]),
                          "NFE_0.75": np.sum(self.latest_infrence_step[500:750]),
                          "NFE_1.0": np.sum(self.latest_infrence_step[750:])})
-
         return logs
 
     def save(self):

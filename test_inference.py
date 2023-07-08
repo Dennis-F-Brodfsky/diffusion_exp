@@ -8,6 +8,7 @@ from utils.ckpt import load_ckpt
 import torch
 from diffusers import DPMSolverMultistepScheduler, DDPMPipeline
 import seaborn as sns
+import os
 
 
 class MyDPMScheduler(DPMSolverMultistepScheduler):
@@ -20,6 +21,14 @@ class MyDPMScheduler(DPMSolverMultistepScheduler):
             None,
         ] * self.config.solver_order
         self.lower_order_nums = 0
+
+
+def transfer_to_pil_and_save(imgs: torch.Tensor, filepath: str, round: int):
+    imgs = (imgs / 2 + 0.5).clamp(0, 1)
+    imgs = imgs.cpu().permute(0, 2, 3, 1).numpy()
+    imgs = DDPMPipeline.numpy_to_pil(imgs)
+    for i, img in enumerate(imgs):
+        img.save(os.path.join(filepath, f'{round+i}.jpg'))
 
 
 cfg = Configurations('configs/CIFAR10/DCGAN.yaml')
@@ -58,9 +67,15 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--gpu_id', type=int, default=0)
 parser.add_argument('--inf_way', type=int, nargs='+', default=[25, 50, 125, 200, 300, 425, 600, 800, 999])
 parser.add_argument('--to', type=str, default='img/dist.jpg')
+parser.add_argument('--target_path', type=str, default='img/rl_suggester')
+parser.add_argument('--base_path', type=str, default='img/benchmark')
 args = parser.parse_args()
 
 
+if not os.path.exists(args.target_path):
+    os.mkdir(args.target_path)
+if not os.path.exists(args.base_path):
+    os.mkdir(args.base_path)
 ptu.init_gpu(gpu_id=args.gpu_id)
 DIS.to(ptu.device)
 ddpm = DDPMPipeline.from_pretrained('models/ddpm-cifar10-32').to(ptu.device)
@@ -74,7 +89,7 @@ s2 = DPMSolverMultistepScheduler.from_config(ddpm.scheduler.config)
 s2.set_timesteps(len(inf_way), ptu.device)
 res1, res2 = [], []
 with torch.no_grad():
-    for _ in range(500):
+    for j in range(50):
         img = torch.randn((512, 3, 32, 32))
         img_1 = img[:]
         for t in s1.timesteps:
@@ -85,6 +100,10 @@ with torch.no_grad():
             img_1 = s2.step(model_output, t, img_1.to(ptu.device)).prev_sample
         res1.extend(DIS(img.to(ptu.device), 1)['adv_output'].to('cpu').tolist())
         res2.extend(DIS(img_1.to(ptu.device), 1)['adv_output'].to('cpu').tolist())
+        # transfer to RGB256 images and save them!
+        transfer_to_pil_and_save(img, args.target_path, j*512)
+        transfer_to_pil_and_save(img_1, args.base_path, j*512)
+        
 
 group = ['ours']*len(res1) + ['benchmark']*len(res2)
 visual_data = {'reward': res1 + res2, 'group': group}

@@ -124,7 +124,7 @@ ob_dim, ac_dim = 1000, 2
 logits_na = Actor()
 actor_optim_spec = OptimizerSpec(constructor=Adam, optim_kwargs={'lr': arg_cmd.lr}, learning_rate_schedule=None)
 critic_optim_spec = OptimizerSpec(constructor=Adam, optim_kwargs={'lr': arg_cmd.lr}, learning_rate_schedule=None)
-explor_sche = PiecewiseSchedule([(0, 0.5), (arg_cmd.n_itr // 10, 0.1), (arg_cmd.n_itr // 1.2, 0.05), (arg_cmd.n_itr, 0.025)])
+explor_sche = PiecewiseSchedule([(0, 0.5), (arg_cmd.n_itr // 10, 0.05), (arg_cmd.n_itr, 0.0)])
 
 
 if arg_cmd.algo == 'pg':
@@ -141,11 +141,11 @@ elif arg_cmd.algo == 'q':
     args_q = DiffusionQConfig('',arg_cmd.n_itr, exp_name=arg_cmd.exp_name, batch_size=512,
                               no_gpu=False, which_gpu=arg_cmd.gpu_id, seed=arg_cmd.seed,
                               dis=DIS, penalty=arg_cmd.penalty, diffuser_scheduler=MyDPMScheduler, 
-                              gamma=0.95, scalar_log_freq=5000, learning_start=arg_cmd.learning_start,
+                              gamma=0.99, scalar_log_freq=5000, learning_start=arg_cmd.learning_start,
                               env_wrappers=lambda env: env, q_func=q_fun, q2_func=q_fun, 
                               clipped_q=True, double_q=True, loc=arg_cmd.loc, scale=arg_cmd.scale,
-                              exploration_schedule=explor_sche, 
-                              q_net_spec=critic_optim_spec, 
+                              exploration_schedule=explor_sche, learning_freq=1000,
+                              q_net_spec=critic_optim_spec, num_agent_train_steps_per_iter=50,
                               inference_batch_size=arg_cmd.ibs)
     set_config_logdir(args_q)
     param = vars(args_q)
@@ -156,10 +156,10 @@ elif arg_cmd.algo == 'qr-dqn':
     args_qr_dqn = DiffusionQRDQNConfig('', arg_cmd.n_itr, exp_name=arg_cmd.exp_name, batch_size=512, 
                                        no_gpu=False, which_gpu=arg_cmd.gpu_id, seed=arg_cmd.seed,
                                        dis=DIS, penalty=arg_cmd.penalty, diffuser_scheduler=MyDPMScheduler, 
-                                       gamma=0.95, scalar_log_freq=5000, learning_start=arg_cmd.learning_start,
+                                       gamma=0.99, scalar_log_freq=5000, learning_start=arg_cmd.learning_start,
                                        env_wrappers=lambda env: env, quantile_func=quantile_fun, 
-                                       double_q=True, loc=arg_cmd.loc, scale=arg_cmd.scale,
-                                       exploration_schedule=explor_sche, 
+                                       double_q=True, loc=arg_cmd.loc, scale=arg_cmd.scale, learning_freq=1000,
+                                       exploration_schedule=explor_sche, num_agent_train_steps_per_iter=50, 
                                        quantile_net_spec=critic_optim_spec, inference_batch_size=arg_cmd.ibs)
     set_config_logdir(args_qr_dqn)
     param = vars(args_qr_dqn)
