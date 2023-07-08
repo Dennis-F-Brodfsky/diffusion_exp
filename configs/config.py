@@ -33,10 +33,12 @@ class BasicConfig:
     image_size: Tuple = (3, 32, 32)
     inference_batch_size: int = 4
     diffuser_scheduler: Union[Module, None] = None
+    diffuser_dir: str = None
+    gan_dir: str = None
 
 
 @dataclasses.dataclass
-class DiffustionConfig(BasicConfig):
+class DiffusionConfig(BasicConfig):
     max_norm_clipping: float = 10
     gamma: float = 0.9
     mean_net: Union[Module, None] = None

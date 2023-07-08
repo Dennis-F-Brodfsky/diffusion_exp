@@ -5,3 +5,4 @@ logs
 img
 *.bin
 *.pth
+models/ddpm-cifar10-32

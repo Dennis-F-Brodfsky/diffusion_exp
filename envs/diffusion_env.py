@@ -13,7 +13,7 @@ class DiffusionEnv(gym.Env):
         self.DIS = params['dis'].to(ptu.device)
         self.action_space = Discrete(2)
         self.observation_space = MultiBinary(1000)
-        self.diffuser = DDPMPipeline.from_pretrained('/home/zhulei/diffusion_exp/models/ddpm-cifar10-32').to(ptu.device)
+        self.diffuser = DDPMPipeline.from_pretrained(params['diffuser_dir']).to(ptu.device)
         self.logdir = params['logdir']
         self._is_eval = is_eval
         self.scheduler = params['diffuser_scheduler'].from_config(self.diffuser.scheduler.config)
