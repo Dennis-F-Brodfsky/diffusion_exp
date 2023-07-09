@@ -121,6 +121,110 @@ def pytorch_fid(mu1, sigma1, mu2, sigma2, eps=1e-6):
 
     return (diff.dot(diff) + np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean)
 
+
+class MaskedDQN(DQNCritic):
+    @staticmethod
+    def mask_q_value(q_val: torch.Tensor, mask_no):
+        masked_q_val = q_val.clone()
+        for i, mask in enumerate(mask_no):
+            masked_q_val[i, mask:] = -torch.inf
+        return masked_q_val
+
+    def update(self, masked_ob_no, ac_na, next_mask_ob_no, reward_n, terminal_n):
+        ob_no, mask_no = zip(*masked_ob_no)
+        next_ob_no, next_mask_no = zip(*next_mask_ob_no)
+        self.q_net.train()
+        if self.clipped_q:
+            self.q2_net.train()
+        ob_no = ptu.from_numpy(ob_no)
+        ac_na = ptu.from_numpy(ac_na).to(torch.long)
+        next_ob_no = ptu.from_numpy(next_ob_no)
+        reward_n = ptu.from_numpy(reward_n)
+        terminal_n = ptu.from_numpy(terminal_n)
+        if self.clipped_q:
+            qa_t_values = self.q_net(ob_no)
+            qa2_t_values = self.q2_net(ob_no)
+            qa_tp1_values = torch.min(self.q_net_target(next_ob_no), self.q2_net_target(next_ob_no))
+            q2_t_values = torch.gather(qa2_t_values, 1, ac_na.unsqueeze(1)).squeeze(1)
+        else:
+            qa_t_values = self.q_net(ob_no)
+            qa_tp1_values = self.q_net_target(next_ob_no)
+            q2_t_values = None
+        # feature
+        q_t_values = torch.gather(qa_t_values, 1, ac_na.unsqueeze(1)).squeeze(1)
+        if self.double_q:
+            qa_t1_action = self.mask_q_value(self.q_net(next_ob_no) if not self.clipped_q else torch.min(self.q_net(next_ob_no), self.q2_net(next_ob_no)), next_mask_no).argmax(dim=1).unsqueeze(-1)
+            q_tp1 = qa_tp1_values.gather(1, qa_t1_action).squeeze(1)
+        else:
+            q_tp1, _ = self.mask_q_value(qa_tp1_values, next_mask_no).max(dim=1)
+        # target / prediction
+        target = reward_n + self.gamma * q_tp1 * (1 - terminal_n)
+        target = target.detach()
+        loss = self.loss(q_t_values, target)
+        if self.clipped_q:
+            loss += self.loss(q2_t_values, target)
+        self.q_net_optimizer.zero_grad()
+        loss.backward()
+        utils.clip_grad_value_(self.parameters, self.grad_norm_clipping)
+        self.q_net_optimizer.step()
+        if self.q_net_spec[2]:
+            self.q_net_scheduler.step()
+        return {'Delta Error': ptu.to_numpy(loss), 'Estimated Q': q_t_values.mean().item()}
+    
+    @torch.no_grad
+    def qa_values(self, masked_obs, **kwargs):
+        return ptu.to_numpy(self.estimate_values(masked_obs))
+    
+    @torch.no_grad
+    def estimate_values(self, masked_obs, policy, **kwargs):
+        obs, mask = zip(*masked_obs)
+        return self.mask_q_value(super().estimate_values(obs), mask)
+
+
+class DiffusionMaskedQAgent(DiffusionQAgent):
+    def __init__(self, env, agent_params):
+        self.env = env
+        self.agent_params = agent_params
+        self.batch_size = agent_params['batch_size']
+        self.last_obs = self.env.reset()
+        self.learning_start = agent_params['learning_start']
+        self.learning_freq = agent_params['learning_freq']
+        self.target_update_freq = agent_params['target_update_freq']
+        self.exploration = agent_params['exploration_schedule']
+        self.loc = agent_params['loc']
+        self.scale = agent_params['scale']
+        self.critic = DQNCritic(agent_params)
+        self.actor = ArgmaxPolicy(self.critic)
+        self.replay_buffer = FlexibleReplayBuffer(agent_params['buffer_size'], agent_params['horizon'])
+        self.t = 0
+        self.replay_buffer_idx = None
+        self.latest_nfe = None
+        self.latest_dis_score = None
+        self.num_param_updates = 0
+    
+    def step_env(self):
+        self.replay_buffer_idx = self.replay_buffer.store_frame(self.last_obs)
+        eps = self.exploration.value(self.t)
+        perform_random_action = eps > np.random.random() or self.t <= self.learning_start
+        if perform_random_action:
+            action = self.env.action_space.sample()
+        else:
+            ob, mask = self.replay_buffer.encode_recent_observation()
+            if not hasattr(ob, '__len__'):
+                ob_batch, mask_batch = np.array([ob]), np.array([mask])
+            else:
+                ob_batch = ob[None]
+                mask_batch = mask[None]
+            action = self.actor.get_action(ob_batch, mask_batch)[0]
+        (obs, _), reward, done, _ = self.env.step(action)
+        self.last_obs = obs.copy()
+        self.replay_buffer.store_effect(self.replay_buffer_idx, action, reward, done)
+        if done:
+            self.latest_dis_score = reward / self.scale - self.loc
+            self.latest_infrence_step = obs == 1
+            print(self.latest_infrence_step.nonzero()[0][::-1])
+            self.last_obs = self.env.reset()
+
 '''
 
 '''

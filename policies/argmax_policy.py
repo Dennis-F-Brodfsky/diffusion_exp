@@ -21,4 +21,3 @@ class ArgmaxPolicy(BasePolicy):
 
     def save(self, filepath: str):
         pass
-

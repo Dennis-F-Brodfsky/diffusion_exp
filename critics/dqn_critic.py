@@ -76,6 +76,7 @@ class DQNCritic(BaseCritic):
         if self.clipped_q:
             self.soft_update(self.q2_net, self.q2_net_target, self.target_update_rate)
 
+    @torch.no_grad()
     def qa_values(self, obs, **kwargs):
         self.q_net.eval()
         obs = ptu.from_numpy(obs)
@@ -86,6 +87,7 @@ class DQNCritic(BaseCritic):
             qa_values = self.q_net(obs)
         return ptu.to_numpy(qa_values)
 
+    @torch.no_grad()
     def estimate_values(self, obs, policy, **kwargs):
         self.q_net.eval()
         obs = ptu.from_numpy(obs)

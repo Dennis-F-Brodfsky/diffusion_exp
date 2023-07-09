@@ -19,7 +19,6 @@ class QRDQNCritic(BaseCritic):
         self.q_net.to(ptu.device)
         self.q_net_target.to(ptu.device)
         self.q_net_target.eval()
-        # self.q_net_target.require_grad_(False)
         self.parameters = self.q_net.parameters()
         self.q_net_optimizer, self.q_net_scheduler = ptu.build_optim(self.q_net_spec, self.parameters)
 
